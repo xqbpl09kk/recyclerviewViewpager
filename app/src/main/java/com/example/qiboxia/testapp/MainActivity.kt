@@ -11,6 +11,7 @@ import android.support.v7.widget.RecyclerView
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Adapter
 import android.widget.TextView
 import kotlinx.android.synthetic.main.activity_main.*
 import java.lang.ref.WeakReference
@@ -20,8 +21,48 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-        recycler_view.adapter = MAdapter(applicationContext)
-        recycler_view.layoutManager = LinearLayoutManager(applicationContext)
+
+        header_recycler_view.adapter =object: RecyclerView.Adapter<RecyclerView.ViewHolder>(){
+            override fun onCreateViewHolder(p0: ViewGroup, p1: Int): RecyclerView.ViewHolder {
+                return object : RecyclerView.ViewHolder(LayoutInflater.from(this@MainActivity).inflate(R.layout.item1 , p0 , false)) {}
+            }
+
+            override fun getItemCount(): Int { return 4 }
+
+            override fun onBindViewHolder(p0: RecyclerView.ViewHolder, p1: Int) {}
+
+        }
+        header_recycler_view.layoutManager = object : GridLayoutManager(this , 2){
+            override fun canScrollHorizontally(): Boolean {
+                return false
+            }
+
+            override fun canScrollVertically(): Boolean {
+                return false
+            }
+        }
+
+//        val pager = itemView as ViewPager
+        val adapter = MPagerAdapter(this)
+        pager.adapter = adapter
+        pager.requestLayout()
+        pager.addOnPageChangeListener(object : ViewPager.OnPageChangeListener{
+            override fun onPageScrollStateChanged(p0: Int) {
+
+            }
+
+            override fun onPageScrolled(p0: Int, p1: Float, p2: Int) {
+            }
+
+            override fun onPageSelected(p0: Int) {
+                val layoutParams = pager.layoutParams
+                layoutParams.height = adapter.getHeight(p0)
+                pager.layoutParams = layoutParams
+            }
+
+        })
+//        recycler_view.adapter = MAdapter(applicationContext)
+//        recycler_view.layoutManager = LinearLayoutManager(applicationContext)
     }
 
     class MAdapter(val context : Context):RecyclerView.Adapter<RecyclerView.ViewHolder>(){
@@ -59,6 +100,7 @@ class MainActivity : AppCompatActivity() {
                             val pager = itemView as ViewPager
                             val adapter = MPagerAdapter(context)
                             pager.adapter = adapter
+                            pager.requestLayout()
                             pager.addOnPageChangeListener(object : ViewPager.OnPageChangeListener{
                                 override fun onPageScrollStateChanged(p0: Int) {
 
@@ -68,10 +110,9 @@ class MainActivity : AppCompatActivity() {
                                 }
 
                                 override fun onPageSelected(p0: Int) {
-//                                    val layoutParams = pager.layoutParams
-//                                    layoutParams.height = adapter.getHeight(p0)
-//                                    pager.layoutParams = layoutParams
-//                                    notifyDataSetChanged()
+                                    val layoutParams = pager.layoutParams
+                                    layoutParams.height = adapter.getHeight(p0)
+                                    pager.layoutParams = layoutParams
                                 }
 
                             })
@@ -95,9 +136,10 @@ class MainActivity : AppCompatActivity() {
     }
     class MPagerAdapter(val context: Context): PagerAdapter(){
 
-        private val map : HashMap<Int , WeakReference<View>> = HashMap()
+        private val map : HashMap<Int , WeakReference<RecyclerView>> = HashMap()
         fun getHeight(position : Int) :Int{
-            return map[position]?.get()?.height ?:0
+            val recyclerView = map[position]?.get()
+            return (recyclerView?.adapter?.itemCount?:0) * (recyclerView?.getChildAt(0)?.height?:0)
         }
 
         override fun isViewFromObject(p0: View, p1: Any): Boolean {
@@ -111,17 +153,17 @@ class MainActivity : AppCompatActivity() {
         override fun instantiateItem(container: ViewGroup, position: Int): Any {
             val recyclerView = LayoutInflater.from(context).inflate(R.layout.item_header , container ,false) as RecyclerView
             recyclerView.adapter = ContentAdapter(context , (position +1)* 50)
-            recyclerView.layoutManager =object : LinearLayoutManager(context){
+            val layoutManager =object : LinearLayoutManager(context){
                 override fun canScrollVertically(): Boolean {
                     return false
                 }
             }
+            recyclerView.layoutManager = layoutManager
             container.addView(recyclerView)
-
-//            val layoutParams = container.layoutParams
-//            layoutParams.height = recyclerView.computeVerticalScrollRange()
-//            container.layoutParams = layoutParams
-            map[position] = WeakReference<View>(recyclerView)
+//            for(index in 0..((recyclerView.adapter?.itemCount?:0) -1)){
+//                height += layoutManager.getDecoratedMeasuredHeight(recyclerView.getChildAt(index))
+//            }
+            map[position] = WeakReference(recyclerView)
             return recyclerView
         }
 
